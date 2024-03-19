@@ -1,0 +1,462 @@
+Program.Sub.ScreenSU.Start
+Gui.FormFService..Create
+Gui.FormFService..Caption("Field Service Dashboard")
+Gui.FormFService..Size(15360,10695)
+Gui.FormFService..MinX(0)
+Gui.FormFService..MinY(0)
+Gui.FormFService..Position(0,0)
+Gui.FormFService..BackColor(-2147483633)
+Gui.FormFService..MousePointer(0)
+Gui.FormFService..Event(UnLoad,FormFService_UnLoad)
+Gui.FormFService.txtCust.Create(TextBox,"",True,2355,300,0,270,360,True,0,"Arial",8,-2147483643,1)
+Gui.FormFService.txtCust.Event(GotFocus,txtCust_GotFocus)
+Gui.FormFService.cmdCust.Create(Button)
+Gui.FormFService.cmdCust.Size(450,375)
+Gui.FormFService.cmdCust.Position(2715,330)
+Gui.FormFService.cmdCust.Caption("^")
+Gui.FormFService.cmdCust.Event(Click,cmdCust_Click)
+Gui.FormFService.txtSerial.Create(TextBox,"",True,2940,300,0,3615,360,True,0,"Arial",8,-2147483643,1)
+Gui.FormFService.txtSerial.Event(GotFocus,txtSerial_GotFocus)
+Gui.FormFService.cmdSerial.Create(Button)
+Gui.FormFService.cmdSerial.Size(450,375)
+Gui.FormFService.cmdSerial.Position(6645,330)
+Gui.FormFService.cmdSerial.Caption("^")
+Gui.FormFService.cmdSerial.Event(Click,cmdSerial_Click)
+Gui.FormFService.lblCust.Create(Label,"Customer",True,1935,255,0,270,105,True,0,"Arial",8,-2147483633,0)
+Gui.FormFService.lblSerial.Create(Label,"Serial",True,1935,255,0,3615,105,True,0,"Arial",8,-2147483633,0)
+Gui.FormFService.cmdReresh.Create(Button)
+Gui.FormFService.cmdReresh.Size(855,375)
+Gui.FormFService.cmdReresh.Position(7410,330)
+Gui.FormFService.cmdReresh.Caption("REFRESH")
+Gui.FormFService.cmdReresh.Event(Click,cmdReresh_Click)
+Gui.FormFService.GsGridControl1.Create(GsGridControl)
+Gui.FormFService.GsGridControl1.Size(14775,9180)
+Gui.FormFService.GsGridControl1.Position(270,855)
+Gui.FormFService.GsGridControl1.Anchor(15)
+Gui.FormFService.GsGridControl1.Event(RowCellClick,GsGridControl1_RowCellClick)
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+F.Intrinsic.Control.SetErrorHandler("Main_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String,"")
+
+F.Intrinsic.Control.CallSub(Get_Data)
+
+Gui.FormFService..Show
+Gui.FormFService..AlwaysOnTop(True)
+Gui.FormFService..AlwaysOnTop(False)
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("Main_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	F.Intrinsic.String.Build("Project: GCG_6579_Service_Dashboard.g2u {0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}",V.Ambient.NewLine,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.CallSub(FormFService_UnLoad)
+Function.Intrinsic.Control.EndIf
+Program.Sub.Main.End
+
+Program.Sub.FormFService_UnLoad.Start
+F.Intrinsic.Control.SetErrorHandler("FormFService_UnLoad_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String,"")
+V.Local.sSerialize.Declare(String,"")
+
+Gui.FormFService.GsGridControl1.Serialize("GServ",V.Local.sSerialize)
+F.Global.Registry.AddValue(V.Caller.User,V.Caller.CompanyCode,"GServ",6579,1000,False,"Serialize",False,0,-999.0,1/1/1980,12:00:00 AM,V.Local.sSerialize)
+
+F.Intrinsic.Control.End
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("FormFService_UnLoad_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	F.Intrinsic.Control.End
+Function.Intrinsic.Control.EndIf
+Program.Sub.FormFService_UnLoad.End
+
+Program.Sub.txtCust_GotFocus.Start
+F.Intrinsic.Control.SetErrorHandler("txtCust_GotFocus_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String,"")
+
+Gui.FormFService.txtCust.SelectAll
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("txtCust_GotFocus_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	F.Intrinsic.String.Build("Project: GCG_6579_Service_Dashboard.g2u {0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}",V.Ambient.NewLine,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.CallSub(FormFService_UnLoad)
+Function.Intrinsic.Control.EndIf
+Program.Sub.txtCust_GotFocus.End
+
+Program.Sub.cmdCust_Click.Start
+F.Intrinsic.Control.SetErrorHandler("cmdCust_Click_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String,"")
+V.Local.sSQL.Declare(String,"")
+V.Local.sRet.Declare(String,"")
+
+F.Intrinsic.UI.SetBrowserHotTypeAhead(True)
+
+V.Local.sSQL.Set("Select Customer, Name_Customer From V_Customer_Master Order by Customer")
+
+F.ODBC.Connection!Con.OpenCompanyConnection
+F.Intrinsic.UI.Browser("Select Customer","con",V.Local.sSQL,"Customer*!*Name","30*!*70",V.Local.sRet)
+F.ODBC.Connection!Con.Close
+
+F.Intrinsic.Control.If(V.Local.sRet,<>,"***CANCEL***")
+	F.Intrinsic.String.Split(V.Local.sRet,"*!*",V.Local.sRet)
+	Gui.FormFService.txtCust.Text(V.Local.sRet.Trim)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("cmdCust_Click_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	F.Intrinsic.String.Build("Project: GCG_6579_Service_Dashboard.g2u {0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}",V.Ambient.NewLine,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.CallSub(FormFService_UnLoad)
+Function.Intrinsic.Control.EndIf
+Program.Sub.cmdCust_Click.End
+
+Program.Sub.Get_Data.Start
+F.Intrinsic.Control.SetErrorHandler("Get_Data_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String,"")
+V.Local.sSql.Declare(String,"")
+V.Local.sSql2.Declare(String,"")
+V.Local.bCust.Declare(Boolean,False)
+V.Local.bSerial.Declare(Boolean,False)
+V.Local.dDate.Declare(Date)
+
+F.Intrinsic.Variable.ArgExists("Cust",V.Local.bCust)
+F.Intrinsic.Variable.ArgExists("Serial",V.Local.bSerial)
+
+F.Intrinsic.Control.If(V.Local.bCust,=,True,"AND",V.Local.bSerial,=,True)
+	F.Intrinsic.String.Build("Select * From GCG_6579_Inspection Where Customer = '{0}' and Serial_No = '{1}'",V.Args.Cust,V.Args.Serial,V.Local.sSql)
+F.Intrinsic.Control.ElseIf(V.Local.bCust,=,True,"AND",V.Local.bSerial,=,False)
+	F.Intrinsic.String.Build("Select * From GCG_6579_Inspection Where Customer = '{0}'",V.Args.Cust,V.Local.sSql)
+F.Intrinsic.Control.ElseIf(V.Local.bCust,=,False,"AND",V.Local.bSerial,=,True)
+	F.Intrinsic.String.Build("Select * From GCG_6579_Inspection Where Serial_No = '{0}'",V.Args.Serial,V.Local.sSql)
+F.Intrinsic.Control.Else
+	V.Local.sSql.Set("Select * From GCG_6579_Inspection Where Customer = '-2lkajsdoelka'")
+F.Intrinsic.Control.EndIf
+
+F.ODBC.Connection!Con.OpenCompanyConnection
+
+F.Intrinsic.Control.If(V.DataTable.Service.Exists)
+	F.Data.DataTable.CreateFromSQL("Temp","con",V.Local.sSql,True)
+	F.ODBC.Connection!Con.Close
+	F.Data.DataTable.DeleteRow("Service")
+	F.Data.DataTable.AcceptChanges("Service")
+	F.Data.DataTable.Merge("Temp","Service",False,4)
+	F.Data.DataTable.Close("Temp")
+F.Intrinsic.Control.Else
+	'clean up bi data
+	F.Intrinsic.Date.DateAdd("M",-1,V.Ambient.Date,V.Local.dDate)
+	F.Intrinsic.String.Build("Delete From GCG_6579_BI_F_Header Where Print_Date < '{0}'",V.Local.dDate.PervasiveDate,V.Local.sSql2)
+	F.ODBC.Connection!Con.Execute(V.Local.sSql2)
+	F.Intrinsic.String.Build("Delete From GCG_6579_BI_F_Detail Where Print_Date < '{0}'",V.Local.dDate.PervasiveDate,V.Local.sSql2)
+	F.ODBC.Connection!Con.Execute(V.Local.sSql2)
+	
+	F.Data.DataTable.CreateFromSQL("Service","con",V.Local.sSql,True)
+	F.Data.DataTable.AddColumn("Service","Print_Report",String)
+	F.ODBC.Connection!Con.Close
+	F.Intrinsic.Control.CallSub(Set_Properties)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("Get_Data_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	F.Intrinsic.String.Build("Project: GCG_6579_Service_Dashboard.g2u {0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}",V.Ambient.NewLine,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.CallSub(FormFService_UnLoad)
+Function.Intrinsic.Control.EndIf
+Program.Sub.Get_Data.End
+
+Program.Sub.Set_Properties.Start
+F.Intrinsic.Control.SetErrorHandler("Set_Properties_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String,"")
+V.Local.sSerialize.Declare(String,"")
+V.Local.sFields.Declare(String,"")
+V.Local.i.Declare(Long,0)
+V.Local.sCaption.Declare(String,"")
+
+Gui.FormFService.GsGridControl1.AddGridviewFromDatatable("GServ","Service")
+
+V.Local.sFields.Set(V.DataTable.Service.FieldNames)
+F.Intrinsic.String.Split(V.Local.sFields,"*!*",V.Local.sFields)
+
+Gui.FormFService.GsGridControl1.SetGridviewProperty("GServ","Showgrouppanel",True)
+Gui.FormFService.GsGridControl1.SetGridviewProperty("GServ","Multiselect",False)
+Gui.FormFService.GsGridControl1.SetGridviewProperty("GServ","OptionsSelectionEnableAppearanceFocusedRow",False)
+Gui.FormFService.GsGridControl1.SetGridviewProperty("GServ","OptionsViewShowAutoFilterRow",True)
+Gui.FormFService.GsGridControl1.SetGridviewProperty("GServ","OptionsViewColumnAutoWidth",False)
+
+Gui.FormFService.GsGridControl1.SetColumnProperty("GServ","Print_Report","AllowEdit",False)
+Gui.FormFService.GsGridControl1.SetColumnProperty("GServ","Print_Report","HeaderForeColor",v.Color.PRI-GSS-00)
+Gui.FormFService.GsGridControl1.SetColumnProperty("GServ","Print_Report","HeaderFontBold",True)
+Gui.FormFService.GsGridControl1.SetColumnProperty("GServ","Print_Report","ReadOnly",True)
+Gui.FormFService.GsGridControl1.SetColumnProperty("GServ","Print_Report","Fixed","Right")
+Gui.FormFService.GsGridControl1.SetColumnProperty("GServ","Print_Report","Caption"," ")
+Gui.FormFService.GsGridControl1.ColumnEdit("GServ","Print_Report","EditorButton","Print Report")
+
+F.Intrinsic.Control.For(V.Local.i,0,V.Local.sFields.UBound,1)
+	F.Intrinsic.String.Replace(V.Local.sFields(V.Local.i).Trim,"_"," ",V.Local.sCaption)
+	Gui.FormFService.GsGridControl1.SetColumnProperty("GServ",V.Local.sFields(V.Local.i),"AllowEdit",False)
+	Gui.FormFService.GsGridControl1.SetColumnProperty("GServ",V.Local.sFields(V.Local.i),"HeaderForeColor",v.Color.PRI-GSS-00)
+	Gui.FormFService.GsGridControl1.SetColumnProperty("GServ",V.Local.sFields(V.Local.i),"HeaderFontBold",True)
+	Gui.FormFService.GsGridControl1.SetColumnProperty("GServ",V.Local.sFields(V.Local.i),"ReadOnly",True)
+	
+	F.Intrinsic.Control.SelectCase(V.Local.sFields(V.Local.i).UCase)
+		F.Intrinsic.Control.Case("REC_ID")
+			Gui.FormFService.GsGridControl1.SetColumnProperty("GServ","REC_ID","AllowShowHide",False)
+			Gui.FormFService.GsGridControl1.SetColumnProperty("GServ","REC_ID","Visible",False)
+			
+		F.Intrinsic.Control.Case("SERV_DATE")
+			Gui.FormFService.GsGridControl1.SetColumnProperty("GServ","SERV_DATE","DisplayCustomDatetime","d")
+			Gui.FormFService.GsGridControl1.SetColumnProperty("GServ","SERV_DATE","Caption","SERVICE DATE") 
+			
+		F.Intrinsic.Control.Case("NEXT_SERV_DATE")
+			Gui.FormFService.GsGridControl1.SetColumnProperty("GServ","SERV_DATE","DisplayCustomDatetime","d")
+			Gui.FormFService.GsGridControl1.SetColumnProperty("GServ","NEXT_SERV_DATE","Caption","NEXT SERVICE DATE")
+		
+		F.Intrinsic.Control.Case("NAME_CUSTOMER")
+			Gui.FormFService.GsGridControl1.SetColumnProperty("GServ","NAME_CUSTOMER","Caption","CUSTOMER NAME") 
+		
+		F.Intrinsic.Control.Case("SERV_BY")
+			Gui.FormFService.GsGridControl1.SetColumnProperty("GServ","SERV_BY","Caption","SERVICED BY") 
+		
+		F.Intrinsic.Control.Case("EQUIP_COND")
+			Gui.FormFService.GsGridControl1.SetColumnProperty("GServ","EQUIP_COND","Caption","EQUIPMENT CONDITION") 
+		
+		F.Intrinsic.Control.Case("COMM_ADDR")
+			Gui.FormFService.GsGridControl1.SetColumnProperty("GServ","COMM_ADDR","Caption","STATION ADDRESSS NUMBER") 
+	
+		F.Intrinsic.Control.CaseElse
+			Gui.FormFService.GsGridControl1.SetColumnProperty("GServ",V.Local.sFields(V.Local.i),"Caption",V.Local.sCaption.UCase) 
+			
+	F.Intrinsic.Control.EndSelect
+	
+F.Intrinsic.Control.Next(V.Local.i)
+
+F.Global.Registry.ReadValue(V.Caller.User, V.Caller.CompanyCode, "GServ", 6579, 1000, 6, "", V.Local.sSerialize)
+
+Gui.FormFService.GsGridControl1.MainView("GServ")
+
+F.Intrinsic.Control.If(V.Local.sSerialize.Trim,<>,"")
+	Gui.FormFService.GsGridControl1.Deserialize(V.Local.sSerialize)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("Set_Properties_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	F.Intrinsic.String.Build("Project: GCG_6579_Service_Dashboard.g2u {0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}",V.Ambient.NewLine,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.CallSub(FormFService_UnLoad)
+Function.Intrinsic.Control.EndIf
+Program.Sub.Set_Properties.End
+
+Program.Sub.txtSerial_GotFocus.Start
+F.Intrinsic.Control.SetErrorHandler("txtSerial_GotFocus_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String,"")
+
+Gui.FormFService.txtSerial.SelectAll
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("txtSerial_GotFocus_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	F.Intrinsic.String.Build("Project: GCG_6579_Service_Dashboard.g2u {0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}",V.Ambient.NewLine,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.CallSub(FormFService_UnLoad)
+Function.Intrinsic.Control.EndIf
+Program.Sub.txtSerial_GotFocus.End
+
+Program.Sub.cmdSerial_Click.Start
+F.Intrinsic.Control.SetErrorHandler("cmdSerial_Click_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String,"")
+V.Local.sSQL.Declare(String,"")
+V.Local.sRet.Declare(String,"")
+
+F.Intrinsic.UI.SetBrowserHotTypeAhead(True)
+
+V.Local.sSQL.Set("Select Distinct Serial_No From GCG_6579_Inspection Order by Customer")
+
+F.ODBC.Connection!Con.OpenCompanyConnection
+F.Intrinsic.UI.Browser("Select Serial Number","con",V.Local.sSQL,"Serial Number","70",V.Local.sRet)
+F.ODBC.Connection!Con.Close
+
+F.Intrinsic.Control.If(V.Local.sRet,<>,"***CANCEL***")
+	F.Intrinsic.String.Split(V.Local.sRet,"*!*",V.Local.sRet)
+	Gui.FormFService.txtSerial.Text(V.Local.sRet.Trim)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("cmdSerial_Click_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	F.Intrinsic.String.Build("Project: GCG_6579_Service_Dashboard.g2u {0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}",V.Ambient.NewLine,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.CallSub(FormFService_UnLoad)
+Function.Intrinsic.Control.EndIf
+Program.Sub.cmdSerial_Click.End
+
+Program.Sub.cmdReresh_Click.Start
+F.Intrinsic.Control.SetErrorHandler("cmdReresh_Click_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String,"")
+V.Local.sCust.Declare(String,"")
+V.Local.sSerial.Declare(String,"")
+
+Gui.FormFService..Enabled(False)
+
+Gui.FormFService.GsGridControl1.SuspendLayout
+
+V.Local.sCust.Set(V.Screen.FormFService!txtCust.Text)
+V.Local.sSerial.Set(V.Screen.FormFService!txtSerial.Text)
+
+F.Intrinsic.Control.If(V.Local.sCust.Trim,<>,"","AND",V.Local.sSerial,<>,"")
+	F.Intrinsic.Control.CallSub(Get_Data,"Cust",V.Local.sCust.Trim,"Serial",V.Local.sSerial.Trim)
+F.Intrinsic.Control.ElseIf(V.Local.sCust.Trim,<>,"","AND",V.Local.sSerial,=,"")
+	F.Intrinsic.Control.CallSub(Get_Data,"Cust",V.Local.sCust.Trim)
+F.Intrinsic.Control.ElseIf(V.Local.sCust.Trim,=,"","AND",V.Local.sSerial,<>,"")
+	F.Intrinsic.Control.CallSub(Get_Data,"Serial",V.Local.sSerial.Trim)
+F.Intrinsic.Control.Else
+	F.Intrinsic.Control.CallSub(Get_Data)
+F.Intrinsic.Control.EndIf
+
+Gui.FormFService.GsGridControl1.ResumeLayout
+
+Gui.FormFService..Enabled(True)
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("cmdReresh_Click_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	F.Intrinsic.String.Build("Project: GCG_6579_Service_Dashboard.g2u {0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}",V.Ambient.NewLine,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.CallSub(FormFService_UnLoad)
+Function.Intrinsic.Control.EndIf
+Program.Sub.cmdReresh_Click.End
+
+Program.Sub.GsGridControl1_RowCellClick.Start
+F.Intrinsic.Control.SetErrorHandler("GsGridControl1_RowCellClick_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String,"")
+V.Local.iRunID.Declare(Long,0)
+V.Local.iLogID.Declare(Long,0)
+V.Local.iRptID.Declare(Long,0)
+V.Local.iRet.Declare(Long,0)
+V.Local.sParams.Declare(String,"")
+V.Local.sValues.Declare(String,"")
+V.Local.sFilter.Declare(String,"")
+V.Local.sReg.Declare(String,"N")
+V.Local.sEmerg.Declare(String,"N")
+V.Local.sWarr.Declare(String,"N")
+V.Local.sInstall.Declare(String,"N")
+V.Local.sTemp.Declare(String,"")
+V.Local.i.Declare(Long,0)
+V.Local.sFields.Declare(String,"")
+V.Local.sReadOut.Declare(String,"")
+V.Local.sDesc.Declare(String,"")
+
+F.Intrinsic.Control.SelectCase(V.Args.Column.UCase)
+	F.Intrinsic.Control.Case("PRINT_REPORT")
+		F.Global.BI.GetIDFromName("GCG_6579_Field_Service.rpt",V.Local.iRptID)
+	F.Global.BI.GetRunID(V.Local.iRunID)
+	F.Global.BI.StartLogging(V.Local.iRunID,V.Local.iRptID,-1,"",V.Local.iLogID)
+	
+	V.Local.sFields.Set("N1*!*C1*!*T1*!*D1*!*N2*!*C2*!*T2*!*D2*!*NC*!*CC*!*TC*!*N3*!*C3*!*T3*!*D3*!*N4*!*C4*!*T4*!*D4*!*CHAIN*!*COMM_ADDR")
+	V.Local.sReadOut.Set("N1*!*C1*!*T1*!*D1*!*N2*!*C2*!*T2*!*D2*!*NC*!*CC*!*TC*!*N3*!*C3*!*T3*!*D3*!*N4*!*C4*!*T4*!*D4*!*CHAIN*!*COM ADDR")
+	V.Local.sDesc.Set("Input 1 (Link Number)*!*Input 1 (Off Cycles)*!*Output 1 (Lube Time)*!*Input 1 ( Delay Switch Time)*!*Input 2 (Trolley Number)*!*Input 2 (Off Cycles)*!*Output 2 (Lube Time)*!*Input 2 (Delay Switch Time)*!*Cat Drive Number*!*Cat Drive Off Cycle*!*Cat Drive Lube Time*!*Input 3 (Aux 1 Number)*!*Input 3 (Off Cycles)*!*Output 3 (Lube Time)*!*Input 3 (Delay Switch Time)*!*Input 4 (Aux 2 Number)*!*Input 4 (Off Cycles)*!*Output 4 (Lube Time)*!*Input 4 (Delay Switch)*!*Chain Speed (Ft per min.)*!*Station Address Number")
+	
+	F.Intrinsic.String.Split(V.Local.sFields,"*!*",V.Local.sFields)
+	F.Intrinsic.String.Split(V.Local.sReadOut,"*!*",V.Local.sReadOut)
+	F.Intrinsic.String.Split(V.Local.sDesc,"*!*",V.Local.sDesc)
+	
+	F.ODBC.Connection!Con.OpenCompanyConnection
+	F.Data.DataTable.CreateFromSQL("Header","con","Select * From GCG_6579_BI_F_Header Where BIRUNID = -1",True)
+	F.Data.DataTable.CreateFromSQL("Detail","con","Select * From GCG_6579_BI_F_Detail Where BIRUNID = -1",True)
+	
+	F.Intrinsic.String.Build("SERV_DATE < '#{0}#'",V.DataTable.Service(V.Args.RowIndex).Serv_Date!FieldVal,V.Local.sFilter)
+	
+	F.Data.DataView.Create("Service","Temp",22,V.Local.sFilter,"Serv_Date Desc")
+	
+	V.Local.sTemp.Set(V.DataTable.Service(V.Args.RowIndex).Maint_Type!FieldValTrim)
+	V.Local.sTemp.Set(V.Local.sTemp.UCase)
+	F.Intrinsic.Control.If(V.Local.sTemp.Length,<,3)
+		F.Intrinsic.String.RPad(V.Local.sTemp," ",3,V.Local.sTemp)
+	F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.If(V.Local.sTemp.Left3,=,"REG")
+		V.Local.sReg.Set("Y")
+	F.Intrinsic.Control.ElseIf(V.Local.sTemp.Left3,=,"EME")
+		V.Local.sEmerg.Set("Y")
+	F.Intrinsic.Control.ElseIf(V.Local.sTemp.Left3,=,"WAR")
+		V.Local.sWarr.Set("Y")
+	F.Intrinsic.Control.ElseIf(V.Local.sTemp.Left3,=,"INS")
+		V.Local.sInstall.Set("Y")
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Control.If(V.DataView.Service!Temp.RowCount--,<>,-1)
+		F.Data.DataTable.AddRow("Header","BIRUNID",V.Local.iRunID,"Customer",V.DataTable.Service(V.Args.RowIndex).Customer!FieldValTrim,"NAME_CUSTOMER",V.DataTable.Service(V.Args.RowIndex).NAME_CUSTOMER!FieldValTrim,"R_Person",V.DataTable.Service(V.Args.RowIndex).Tech!FieldValTrim,"Last_Serv_Date",V.DataView.Service!Temp(V.DataView.Service!Temp.RowCount--).Serv_Date!FieldVal,"Res_Press",V.DataTable.Service(V.Args.RowIndex).Res_Pressure!FieldValTrim,"Tank_Level",V.DataTable.Service(V.Args.RowIndex).Tank_Level!FieldValTrim,"L_Usage",V.DataTable.Service(V.Args.RowIndex).Lubricant_Usage!FieldValTrim,"Chain_Trolley",V.DataTable.Service(V.Args.RowIndex).Equip_Cond!FieldValTrim,"Conv_Type",V.DataTable.Service(V.Args.RowIndex).Conv_Type!FieldValTrim,"Loc",V.DataTable.Service(V.Args.RowIndex).Location!FieldValTrim,"Maint_Type",V.Local.sReg,"Emergency",V.Local.sEmerg,"Warranty",V.Local.sWarr,"Install",V.Local.sInstall,"Clean_Off",V.DataTable.Service(V.Args.RowIndex).Clean!FieldVal,"Eject_Tubes",V.DataTable.Service(V.Args.RowIndex).Eject_Tubes!FieldVal,"Sys_Working",V.DataTable.Service(V.Args.RowIndex).System_Working!FieldVal,"Serv_Date",V.DataTable.Service(V.Args.RowIndex).Serv_Date!FieldVal,"Print_Date",V.Ambient.Date,"Notes",V.DataTable.Service(V.Args.RowIndex).Notes!FieldValTrim)
+		
+		F.Intrinsic.Control.For(V.Local.i,0,20,1)
+			F.Intrinsic.Math.Add(V.Local.i,1,V.Local.iRet)
+			F.Data.DataTable.AddRow("Detail","BIRUNID",V.Local.iRunID,"Seq_NO",V.Local.iRet,"Read_Out",V.Local.sReadOut(V.Local.i),"Description",V.Local.sDesc(V.Local.i),"Current_Set",V.DataView.Service!Temp(V.DataView.Service!Temp.RowCount--).[V.Local.sFields(V.Local.i)]!FieldVal,"Changed_Set",V.DataTable.Service(V.Args.RowIndex).[V.Local.sFields(V.Local.i)]!FieldVal,"Print_Date",V.Ambient.Date)
+		F.Intrinsic.Control.Next(V.Local.i)
+	F.Intrinsic.Control.Else
+		F.Data.DataTable.AddRow("Header","BIRUNID",V.Local.iRunID,"Customer",V.DataTable.Service(V.Args.RowIndex).Customer!FieldValTrim,"NAME_CUSTOMER",V.DataTable.Service(V.Args.RowIndex).NAME_CUSTOMER!FieldValTrim,"R_Person",V.DataTable.Service(V.Args.RowIndex).Tech!FieldValTrim,"Res_Press",V.DataTable.Service(V.Args.RowIndex).Res_Pressure!FieldValTrim,"Tank_Level",V.DataTable.Service(V.Args.RowIndex).Tank_Level!FieldValTrim,"L_Usage",V.DataTable.Service(V.Args.RowIndex).Lubricant_Usage!FieldValTrim,"Chain_Trolley",V.DataTable.Service(V.Args.RowIndex).Equip_Cond!FieldValTrim,"Conv_Type",V.DataTable.Service(V.Args.RowIndex).Conv_Type!FieldValTrim,"Loc",V.DataTable.Service(V.Args.RowIndex).Location!FieldValTrim,"Maint_Type",V.Local.sReg,"Emergency",V.Local.sEmerg,"Warranty",V.Local.sWarr,"Install",V.Local.sInstall,"Clean_Off",V.DataTable.Service(V.Args.RowIndex).Clean!FieldVal,"Eject_Tubes",V.DataTable.Service(V.Args.RowIndex).Eject_Tubes!FieldVal,"Sys_Working",V.DataTable.Service(V.Args.RowIndex).System_Working!FieldVal,"Serv_Date",V.DataTable.Service(V.Args.RowIndex).Serv_Date!FieldVal,"Print_Date",V.Ambient.Date,"Notes",V.DataTable.Service(V.Args.RowIndex).Notes!FieldValTrim)
+		
+		F.Intrinsic.Control.For(V.Local.i,0,20,1)
+			F.Intrinsic.Math.Add(V.Local.i,1,V.Local.iRet)
+			F.Data.DataTable.AddRow("Detail","BIRUNID",V.Local.iRunID,"Seq_NO",V.Local.iRet,"Read_Out",V.Local.sReadOut(V.Local.i),"Description",V.Local.sDesc(V.Local.i),"Changed_Set",V.DataTable.Service(V.Args.RowIndex).[V.Local.sFields(V.Local.i)]!FieldVal,"Print_Date",V.Ambient.Date)
+		F.Intrinsic.Control.Next(V.Local.i)
+	F.Intrinsic.Control.EndIf
+	
+	F.Data.DataView.Close("Service","Temp")
+	
+	F.Data.DataTable.SaveToDB("Header","con","GCG_6579_BI_F_Header","",128)
+	F.Data.DataTable.SaveToDB("Detail","con","GCG_6579_BI_F_Detail","",128)
+	
+	F.Data.DataTable.Close("Header")
+	F.Data.DataTable.Close("Detail")
+	
+	F.ODBC.Connection!Con.Close
+	
+	F.Global.BI.StopLogging(V.Local.iLogID)
+	F.Global.BI.RunReportPreProcessor(V.Local.iRunID,V.Local.iLogID,V.Local.sParams,V.Local.sValues,"",-1,True,"",-1,"",-1,"","",V.Local.iRet)
+		
+F.Intrinsic.Control.EndSelect
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("GsGridControl1_RowCellClick_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	F.Intrinsic.String.Build("Project: GCG_6579_Service_Dashboard.g2u {0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}",V.Ambient.NewLine,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.CallSub(FormFService_UnLoad)
+Function.Intrinsic.Control.EndIf
+Program.Sub.GsGridControl1_RowCellClick.End
