@@ -1,0 +1,145 @@
+Program.Sub.Preflight.Start
+V.Global.sTransID.Declare(String,"")
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+F.Intrinsic.Control.SetErrorHandler("Main_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String,"")
+V.Local.sSql.Declare(String,"")
+V.Local.sCustomer.Declare(String,"")
+V.Local.sSerial.Declare(String,"")
+V.Local.bRet.Declare(Boolean,False)
+
+F.Intrinsic.Variable.PassedExists("DATA-TRANSID",V.Local.bRet)
+
+F.Intrinsic.Control.If(V.Local.bRet)
+	V.Global.sTransID.Set(V.Passed.DATA-TRANSID)
+	F.ODBC.Connection!Con.OpenCompanyConnection
+	F.Intrinsic.String.Build("Select * From Wireless_Line WHere Trans_ID = '{0}'",V.Global.sTransID,V.Local.sSql)
+	F.ODBC.Connection!Con.OpenRecordsetRO("rstWIR",V.Local.sSql)
+	V.Local.sCustomer.Set(V.ODBC.Con!rstWIR.FieldValTrim!Field_1)
+	V.Local.sSerial.Set(V.ODBC.Con!rstWIR.FieldValTrim!Field_4)
+	
+	F.Intrinsic.Control.If(V.Local.sCustomer,<>,"","AND",V.Local.sSerial,<>,"")
+		F.Intrinsic.Control.CallSub(Get_Data,"Lookup","C&S","Customer",V.Local.sCustomer.Trim,"Serial",V.Local.sSerial.Trim)
+	F.Intrinsic.Control.ElseIf(V.Local.sCustomer,=,"","AND",V.Local.sSerial,<>,"")
+		F.Intrinsic.Control.CallSub(Get_Data,"Lookup","S","Serial",V.Local.sSerial.Trim)
+	F.Intrinsic.Control.ElseIf(V.Local.sCustomer,<>,"","AND",V.Local.sSerial,=,"")
+		F.Intrinsic.Control.CallSub(Get_Data,"Lookup","C","Customer",V.Local.sCustomer.Trim)
+	F.Intrinsic.Control.Else
+		F.Intrinsic.Control.CallSub(Get_Data,"Lookup","Blank")
+	F.Intrinsic.Control.EndIf
+	
+	F.ODBC.Connection!Con.Close
+
+	F.Intrinsic.Control.CallSub(Exit)	
+
+F.Intrinsic.Control.Else
+	F.Intrinsic.Control.CallSub(Exit)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("Main_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	F.Intrinsic.String.Build("Project: GCG_6579_Service_Lookup.g2u {0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}",V.Ambient.NewLine,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.CallSub(Exit)
+Function.Intrinsic.Control.EndIf
+Program.Sub.Main.End
+
+Program.Sub.Exit.Start
+F.Intrinsic.Control.SetErrorHandler("Exit_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String,"")
+
+F.Intrinsic.Control.End
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("Exit_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	F.Intrinsic.Control.End
+Function.Intrinsic.Control.EndIf
+Program.Sub.Exit.End
+
+Program.Sub.Get_Data.Start
+F.Intrinsic.Control.SetErrorHandler("Get_Data_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String,"")
+V.Local.sSql.Declare(String,"")
+V.Local.sResults.Declare(String,"")
+V.Local.sTempResults.Declare(String,"")
+v.Local.sLinkpath.Declare(String,"")
+V.Local.sFields.Declare(String,"")
+V.Local.sColName.Declare(String,"")
+V.Local.iID.Declare(Long,2)
+
+V.Local.sFields.Set("S_No*!*WO*!*Name_Customer*!*Model*!*Location*!*Building*!*Conv_Type*!*Maint_Type*!*Clean*!*Eject_Tubes*!*System_Working*!*Serv_Date*!*Tech*!*Equip_Cond*!*Notes*!*N1*!*C1*!*T1*!*D1*!*N2*!*C2*!*T2*!*D2*!*NC*!*CC*!*TC*!*N3*!*C3*!*T3*!*D3*!*N4*!*C4*!*T4*!*D4*!*Chain*!*Comm_Addr")
+V.Local.sColName.Set("Serial No*!*WO*!*Customer Name*!*Model*!*Location*!*Building*!*Conv. Type*!*Maint. Type*!*Clean Off System*!*Position Eject Tubes*!*System Working*!*Service Date*!*Technician*!*Chain/Trolley Appearance*!*Notes*!*N1 Input 1 (Link Number)*!*C1 Output 1 (Off Cycle)*!*T1 Output 1 (Lube Time)*!*D1 Input 1 (Switch Delay)*!*N2 Input 2 (Trolley Number)*!*C2 Output 2 (Off Cycles)*!*T2 Output 2 (Lube Time)*!*D2 Input 2 (Switch Delay)*!*Cate Drive Number*!*Cat Drive Off Cycles*!*Cat Drive Lube Time*!*N3 Input 3 (Aux 1 Number)*!*C3 Output 3 (Off Cycles)*!*T3 Output 3 (Lube Time)*!*D3 Input 3 (Switch Delay)*!*N4 Input 4 (Aux 2 Number)*!*C4 Output 4 (Off Cycles)*!*T4 Output 4 (Lube Time)*!*D4 Input 4 (Switch Delay)*!*Chain Speed (Ft per min.)*!*Station Address Number")
+
+F.Intrinsic.Control.SelectCase(V.Args.Lookup)
+	F.Intrinsic.Control.Case("C")
+		F.Intrinsic.String.Build("Select Customer, rtrim(Name_Customer) as Name_Customer, Job+'-'+Suffix as WO, rtrim(Serial_No) as Serial_No, Model, Location, Building, Conv_Type, Maint_Type, Clean, Eject_Tubes, System_Working, Serv_Date, Tech, Equip_Cond, Notes, N1, C1, T1 , D1, N2, C2, T2, D2, NC, CC, TC, N3, C3, T3, D3, N4, C4, T4, D4, Chain, Comm_Addr From GCG_6579_Inspection Where Ucase(Name_Customer) like '{0}%' Order by Serv_Date ",V.Args.Customer.UCase,V.Local.sSql)
+		'set form title
+		F.Intrinsic.String.Build("<table cellpadding = {0}0{0} cellspacing={0}2{0} border = {0}1{0}><tr><td>No Data for Customer like {1}.......</td></tr></table>",V.Ambient.DblQuote,V.Args.Customer,V.Local.sResults)
+		
+	F.Intrinsic.Control.Case("S")
+		F.Intrinsic.String.Build("Select Customer, rtrim(Name_Customer) as Name_Customer, Job+'-'+Suffix as WO, rtrim(Serial_No) as Serial_No, Model, Location, Building, Conv_Type, Maint_Type, Clean, Eject_Tubes, System_Working, Serv_Date, Tech, Equip_Cond, Notes, N1, C1, T1 , D1, N2, C2, T2, D2, NC, CC, TC, N3, C3, T3, D3, N4, C4, T4, D4, Chain, Comm_Addr From GCG_6579_Inspection Where Ucase(Serial_No) like '{0}%' Order by Serv_Date ",V.Args.Serial.UCase,V.Local.sSql)
+		'set form title
+		F.Intrinsic.String.Build("<table cellpadding = {0}0{0} cellspacing={0}2{0} border = {0}1{0}><tr><td>No Data for Serial like {1}.......</td></tr></table>",V.Ambient.DblQuote,V.Args.Serial,V.Local.sResults)
+		
+	F.Intrinsic.Control.Case("C&S")
+		F.Intrinsic.String.Build("Select Customer, rtrim(Name_Customer) as Name_Customer, Job+'-'+Suffix as WO, rtrim(Serial_No) as Serial_No, Model, Location, Building, Conv_Type, Maint_Type, Clean, Eject_Tubes, System_Working, Serv_Date, Tech, Equip_Cond, Notes, N1, C1, T1 , D1, N2, C2, T2, D2, NC, CC, TC, N3, C3, T3, D3, N4, C4, T4, D4, Chain, Comm_Addr From GCG_6579_Inspection Where Ucase(Name_Customer) like '{0}%' and Ucase(Serial_No) like '{1}%' Order by Serv_Date ",V.Args.Customer.UCase,V.Args.Serial.UCase,V.Local.sSql)
+		'set form title
+		F.Intrinsic.String.Build("<table cellpadding = {0}0{0} cellspacing={0}2{0} border = {0}1{0}><tr><td>No Data for Customer like {1} and Serial like {2}.......</td></tr></table>",V.Ambient.DblQuote,V.Args.Customer,V.Args.Serial,V.Local.sResults)
+		
+	F.Intrinsic.Control.CaseElse
+		F.Intrinsic.String.Build("<table cellpadding = {0}0{0} cellspacing={0}2{0} border = {0}1{0}><tr><td>Customer and Serial where both left Blank.......</td></tr></table>",V.Ambient.DblQuote,V.Local.sResults)
+		F.Global.Mobile.setcustomresult(v.Caller.CompanyCode,v.Global.sTransID,v.Local.sResults)	
+		F.Intrinsic.Control.ExitSub
+		
+F.Intrinsic.Control.EndSelect
+
+f.Data.DataTable.CreateFromSQL("Service","Con",V.Local.sSql,True)
+
+'add hyperlink 
+'f.Intrinsic.String.Build("'<a href=http:Custom.aspx?sTXID=' +{0}+ '>'+{1}",V.Local.iID,"Serial_No","Name_Customer",v.Local.sLinkpath)
+'f.Intrinsic.String.Build("'<a href=http:GCG_6579_New_Inspection.aspx?sTXID={0}&sSERIAL=' +{1}+ '&sCNAME='+{2}+'>'+{1}",V.Local.iID,"Serial_No","Name_Customer",v.Local.slinkpath)
+f.Intrinsic.String.Build("'<a href={3}http:GCG_6579_New_Inspection.aspx?sTXID={0}&sCNAME=' +{2}+ '&sSERIAL='+{1}+'{3}>'+{1}",V.Local.iID,"Serial_No","Name_Customer",V.Ambient.DblQuote,v.Local.slinkpath)
+'f.Intrinsic.String.Build("'<a href=http:GCG_6579_New_Inspection.aspx?sPO=' +{1}+ '&sLine='+{2}+'>'+{1}",v.Ambient.DblQuote,"PURCHASE_ORDER","RECORD_NO",v.Local.slinkpath)
+f.Data.DataTable.AddExpressionColumn("Service","S_No","string",V.Local.sLinkpath)
+
+F.Intrinsic.Control.If(V.DataTable.Service.RowCount--,<>,-1)
+	'set form title
+	F.Intrinsic.String.Build("<tr><td style={0}color:Blue;font-weight:bold;{0}><center>Service Look for Customer: {1} </tr></td></center>",V.Ambient.DblQuote,V.DataTable.Service(V.DataTable.Service.RowCount--).Name_Customer!FieldValTrim,V.Local.sTempResults)
+		
+	f.data.datatable.exportHTML("Service",V.Local.sFields,V.Local.sColName,"t01",true,v.Local.sResults)
+
+	F.INTRINSIC.STRING.BUILD("<!DOCTYPE html><html><style>table {  width:150%; overflow:scroll} table, td {  height: 15px; font-size: 11px; border: 1px solid black;  border-collapse: collapse;}table#t01 tr:hover {background-color: #D6EEEE;} tr:nth-child(even) { background-color: #D3D3D3;}table#t01 tr:nth-child(odd) { background-color: #FFFFFF;}table#t01 th {  background-color: #95C26C;  color: black;}</style><body>{0}</body></html>",V.Local.sResults,V.Local.sResults)
+	
+	F.Intrinsic.String.Build("{0}{1}",V.Local.sTempResults,V.Local.sResults,V.Local.sResults)
+	
+	F.Intrinsic.String.Build("{0}<table cellpadding = {1}0{1} cellspacing={1}1{1} border = {1}1{1}>",V.local.sResults,V.Ambient.DblQuote,V.Local.sResults)
+
+	F.Global.Mobile.setcustomresult(v.Caller.CompanyCode,v.Global.sTransID,v.Local.sResults)
+	
+F.Intrinsic.Control.Else
+	F.Global.Mobile.setcustomresult(v.Caller.CompanyCode,v.Global.sTransID,v.Local.sResults)
+F.Intrinsic.Control.EndIf
+
+F.Data.DataTable.Close("Service")
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("Get_Data_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	F.Intrinsic.String.Build("Project: GCG_6579_Service_Lookup.g2u {0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}",V.Ambient.NewLine,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.CallSub(Exit)
+Function.Intrinsic.Control.EndIf
+Program.Sub.Get_Data.End
