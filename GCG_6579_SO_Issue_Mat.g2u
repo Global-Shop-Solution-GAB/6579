@@ -1,0 +1,176 @@
+Program.Sub.Preflight.Start
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+F.Intrinsic.Control.SetErrorHandler("Main_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String,"")
+V.Local.sSql.Declare(String,"")
+V.Local.sOrder.Declare(String,"")
+V.Local.sCust.Declare(String,"")
+
+F.Intrinsic.Control.If(V.Caller.Hook,=,"31983")
+	F.ODBC.Connection!Con.OpenCompanyConnection
+	
+	F.Intrinsic.String.Build("Select Top 1 Order_No From V_Order_To_WO Where Job = '{0}' and Suffix = '{1}'",V.Passed.Job,V.Passed.Suff,V.Local.sSql)
+	F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSql,V.Local.sOrder)
+	
+	F.Intrinsic.String.Build("Select Customer From V_Order_Header Where Order_No = '{0}'",V.Local.sOrder,V.Local.sSql)
+	F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSql,V.Local.sCust)
+	
+	F.Intrinsic.String.Build("Select Description, Product_Line, UM_Inventory, Amt_Price From V_Inventory_Mstr Where Part = '{0}' and Location = '{1}'",V.Passed.Part.Trim,V.Passed.Loc.Trim,V.Local.sSql)
+	F.Data.DataTable.CreateFromSQL("PartData","con",V.Local.sSql,True)
+	
+	F.ODBC.Connection!Con.Close
+	
+	F.Intrinsic.Control.If(V.Local.sOrder.Trim,<>,"")
+		F.Intrinsic.Control.CallSub(Add_SOLine,"Order",V.Local.sOrder,"Cust",V.Local.sCust,"Part",V.Passed.Part.Trim,"Loc",V.Passed.Loc.Trim,"QTY",V.Passed.Quantity.Float)
+	F.Intrinsic.Control.EndIf
+	
+	F.Data.DataTable.Close("PartData")
+	
+	F.Intrinsic.Control.CallSub(Exit)
+	
+F.Intrinsic.Control.Else
+	F.Intrinsic.Control.CallSub(Exit)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("Main_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	F.Intrinsic.String.Build("Project: GCG_6579_SO_Issue_Mat.g2u {0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}",V.Ambient.NewLine,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.CallSub(Exit)
+Function.Intrinsic.Control.EndIf
+Program.Sub.Main.End
+
+Program.Sub.Exit.Start
+F.Intrinsic.Control.SetErrorHandler("Main_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String,"")
+
+F.Intrinsic.Control.End
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("Main_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	F.Intrinsic.Control.End
+Function.Intrinsic.Control.EndIf
+Program.Sub.Exit.End
+
+Program.Sub.Add_SOLine.Start
+F.Intrinsic.Control.SetErrorHandler("Add_SOLine_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String,"")
+V.Local.sTemp.Declare(String,"")
+V.Local.sData.Declare(String,"")
+v.Local.sHold.Declare(String,"")
+v.Local.sParam.Declare(String,"")
+v.Local.sPath.Declare(String,"")
+V.Local.sFileName.Declare(String,"")
+
+V.Local.sTemp.Set("")
+'Transaction 1+7+7 "O" for Order, then Customer, Order #
+f.Intrinsic.String.Build("O{0} {1}",V.Args.Cust,V.Args.Order,v.Local.sTemp)
+
+'Part
+f.Intrinsic.String.Build("{0}{1}",v.Local.sTemp,V.Args.Part,v.Local.sTemp)
+
+'Location
+f.Intrinsic.String.RPad(v.Local.sTemp," ",53,v.Local.sTemp)
+f.Intrinsic.String.Build("{0}{1}",v.Local.sTemp,V.Args.Loc.Trim,v.Local.sTemp)
+f.Intrinsic.String.RPad(v.Local.sTemp," ",55,v.Local.sTemp)
+		
+'Product line
+F.Intrinsic.Control.If(V.DataTable.PartData.RowCount--,<>,-1)
+	F.Intrinsic.String.Concat(V.Local.sTemp,V.DataTable.PartData(V.DataTable.PartData.RowCount--).Product_Line!FieldValTrim,V.Local.sTemp)
+F.Intrinsic.Control.Else
+	F.Intrinsic.String.Concat(V.Local.sTemp,"  ",V.Local.sTemp)
+F.Intrinsic.Control.EndIf
+
+'Description
+f.Intrinsic.String.RPad(v.Local.sTemp," ",60,v.Local.sTemp)
+F.Intrinsic.Control.If(V.DataTable.PartData.RowCount--,<>,-1)
+	V.Local.sHold.Set(V.DataTable.PartData(V.DataTable.PartData.RowCount--).Description!FieldValTrim)
+F.Intrinsic.Control.Else
+	V.Local.sHold.Set("")
+F.Intrinsic.Control.EndIf
+F.Intrinsic.String.Concat(V.Local.sTemp,v.Local.sHold,V.Local.sTemp)
+
+'line number 001-999
+		
+f.Intrinsic.String.RPad(v.Local.sTemp," ",90,v.Local.sTemp)
+F.Intrinsic.String.Concat(V.Local.sTemp,"000",V.Local.sTemp)
+		
+'Line type			
+F.Intrinsic.String.Concat(V.Local.sTemp,"S",V.Local.sTemp)
+
+'quantity 9.4 13
+f.Intrinsic.String.RPad(v.Local.sTemp," ",94,v.Local.sTemp)
+f.Intrinsic.String.Format(V.Args.Qty.Float,"0.0000",v.Local.sHold)
+f.Intrinsic.String.Replace(v.Local.sHold,".","",v.Local.sHold)
+f.Intrinsic.String.LPad(v.Local.sHold,"0",13,v.Local.sHold)
+F.Intrinsic.String.Concat(V.Local.sTemp,V.Local.sHold,V.Local.sTemp)
+
+'price
+f.Intrinsic.String.RPad(v.Local.sTemp," ",117,v.Local.sTemp)
+F.Intrinsic.Control.If(V.DataTable.PartData.RowCount--,<>,-1)
+	f.Intrinsic.String.Format(V.DataTable.PartData(V.DataTable.PartData.RowCount--).Amt_Price!FieldValFloat,"0.000000",v.Local.sHold)
+F.Intrinsic.Control.Else
+	f.Intrinsic.String.Format("0","0.000000",v.Local.sHold)
+F.Intrinsic.Control.EndIf
+f.Intrinsic.String.Replace(v.Local.sHold,".","",v.Local.sHold)
+F.Intrinsic.String.LPad(V.Local.sHold,"0",16,V.Local.sHold)
+F.Intrinsic.String.Build("{0}{1}",V.Local.sTemp,V.Local.sHold,V.Local.sTemp)
+
+'UserFields1-4
+V.Local.sHold.Set("")
+F.Intrinsic.String.RPad(V.Local.sHold," ",120,V.Local.sHold)
+F.Intrinsic.String.Build("{0}{1}",V.Local.sTemp,V.Local.sHold,V.Local.sTemp)
+'Userfield5
+V.Local.sHold.Set("")
+F.Intrinsic.String.RPad(V.Local.sHold," ",30,V.Local.sHold)
+F.Intrinsic.String.Build("{0}{1}",V.Local.sTemp,V.Local.sHold,V.Local.sTemp)
+
+'UM
+F.Intrinsic.String.RPad(V.Local.sTemp," ",283,V.Local.sTemp)
+F.Intrinsic.Control.If(V.DataTable.PartData.RowCount--,<>,-1)
+	F.Intrinsic.String.Build("{0}{1}",V.Local.sTemp,V.DataTable.PartData(V.DataTable.PartData.RowCount--).UM_Inventory!FieldValTrim,V.Local.sTemp)
+F.Intrinsic.Control.Else
+	F.Intrinsic.String.Build("{0}{1}",V.Local.sTemp,"EA",V.Local.sTemp)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.If(V.Local.sData.Trim,=,"")
+	V.Local.sData.Set(V.Local.sTemp)
+F.Intrinsic.Control.Else
+	F.Intrinsic.String.Build("{0}{1}{2}",V.Local.sData,V.Ambient.NewLine,V.Local.sTemp,V.Local.sData)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.If(V.Local.sData.Trim,<>,"")
+	F.Intrinsic.String.Build("SOLINESUPLOAD{0}{1}",V.Caller.Terminal,V.Caller.CompanyCode,V.Local.sFileName)
+	F.Intrinsic.String.Concat(V.Caller.FilesDir,"\",V.Local.sFileName,V.Local.sPath)
+	F.Intrinsic.File.String2File(V.Local.sPath,V.Local.sData)
+	
+	'Upload
+	f.Intrinsic.String.Build("{0}!*!O!*!{1}",V.Args.Order,v.Local.sPath,v.Local.sParam)
+	
+	'adding delay to make sure issue material is done
+	F.Intrinsic.UI.Sleep(5)
+	
+	F.Global.General.CallWrapperSync(7020,v.Local.sParam)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("Add_SOLine_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	F.Intrinsic.String.Build("Project: GCG_6579_SO_Issue_Mat.g2u {0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}",V.Ambient.NewLine,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.CallSub(Exit)
+Function.Intrinsic.Control.EndIf
+Program.Sub.Add_SOLine.End
