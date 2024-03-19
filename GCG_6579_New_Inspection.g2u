@@ -1,0 +1,186 @@
+Program.Sub.Preflight.Start
+V.Global.sTransID.Declare(String,"")
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+F.Intrinsic.Control.SetErrorHandler("Main_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String,"")
+V.Local.sSql.Declare(String,"")
+V.Local.bRet.Declare(Boolean,False)
+V.Local.sSerial.Declare(String,"")
+V.Local.i.Declare(Long,0)
+V.Local.sJob.Declare(String,"")
+V.Local.sSuffix.Declare(String,"")
+V.Local.sCustomer.Declare(String,"")
+V.Local.sRet.Declare(String,"")
+V.Local.sUser.Declare(String,"")
+V.Local.iTXID.Declare(Long,0)
+v.Local.sLinkpath.Declare(String,"")
+V.Local.sNote.Declare(String,"")
+V.Local.bClean.Declare(Boolean,False)
+V.Local.bEject.Declare(Boolean,False)
+V.Local.bWorking.Declare(Boolean,False)
+V.Local.sTemp.Declare(String,"")
+V.Local.sTemp2.Declare(String,"")
+V.Local.sTech.Declare(String,"")
+V.Local.sFilter.Declare(String,"")
+
+F.Intrinsic.Variable.PassedExists("DATA-TRANSID",V.Local.bRet)
+
+F.Intrinsic.Control.If(V.Local.bRet)
+	F.ODBC.Connection!ConC.OpenCommonConnection
+	F.ODBC.Connection!ConC.ExecuteAndReturn("Select TXID From Mobile_Custom_Trans Where TNAME = 'Mighty Lube - New Inspection Lubricator'",V.Local.iTXID)
+	
+'	f.Intrinsic.String.Build("http://localhost/mobile/Pages/Custom.aspx?sTXID={0}",V.Local.iTXID,v.Local.sLinkpath)
+	
+	V.Global.sTransID.Set(V.Passed.DATA-TRANSID)
+	F.ODBC.Connection!Con.OpenCompanyConnection
+	F.Intrinsic.String.Build("Select * From Wireless_Line WHere Trans_ID = '{0}'",V.Global.sTransID,V.Local.sSql)
+	
+	F.Data.DataTable.CreateFromSQL("Wire","con",V.Local.sSql,True)
+	
+	F.Intrinsic.String.Build("Select User_Id From Wireless_Hdr WHere Trans_ID = '{0}'",V.Global.sTransID,V.Local.sSql)
+	F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSql,V.Local.sUser)
+	
+	F.Intrinsic.String.Build("Select rtrim(NAME) From MOBILE_USER_INFO WHere USERID = '{0}'",V.Local.sUser,V.Local.sSql)
+	F.ODBC.Connection!ConC.ExecuteAndReturn(V.Local.sSql,V.Local.sTech)
+	F.Intrinsic.Control.If(V.Local.sTech.Length,>,30)
+		F.Intrinsic.String.Left(V.Local.sTech,30,V.Local.sTech)
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.String.Build("Select LID, TXID, ORDERNO, LABEL, CONTROLTYPE, FIELDLENGTH, DEFAULTTEXT FROM MOBILE_CUSTOM_LABELS WHERE TXID = {0}",V.Local.iTXID,V.Local.sSql)
+	F.Data.DataTable.CreateFromSQL("Custom","ConC",V.Local.sSql,True)
+	F.Data.DataTable.AddColumn("Custom","USER_ID",String)
+	
+	F.Intrinsic.Control.If(V.DataTable.Custom.RowCount--,<>,-1)
+		F.Data.DataTable.SetValue("Custom",-1,"USER_ID",V.Local.sUser.Trim)
+	F.Intrinsic.Control.EndIf
+	
+	f.Intrinsic.String.Build("<head><meta http-equiv='refresh' content='0; URL=http:GCG_6579_Lubricator.aspx?sTXID={0}&sUSER={1}'></head>",V.Local.iTXID,V.Local.sUser,v.Local.sLinkpath)
+	
+	F.Intrinsic.Control.If(V.DataTable.Wire.RowCount--,<>,-1)
+		F.Intrinsic.String.Split(V.DataTable.Wire(V.DataTable.Wire.RowCount--).Field_2!FieldValTrim,"-",V.Local.sJob)
+		F.Intrinsic.Control.If(V.Local.sJob.UBound,>,1)
+			V.Local.sSuffix.Set(V.Local.sJob(1))
+		F.Intrinsic.Control.EndIf
+		
+		F.Intrinsic.String.Build("Select Top 1 A.Order_NO, B.Record_No, A.Ship_ID, A.User_1 as Tech, A.User_2 as Building, A.User_3 as Maint_Type, B.User_1 as Serial, B.User_2 as Conv_Type, B.User_3 as Model, Address_4_Ship From V_Order_Header A Join V_Order_Lines B on A.Order_No = B.Order_No Join V_Order_Ship_To C on A.Order_No = C.Order_No and A.Ship_ID = C.Ship_ID Where B.User_1 = '{0}' Order by A.Date_Due Desc",V.Local.sSerial,V.Local.sSql)
+		
+		F.Data.DataTable.CreateFromSQL("Order","con",V.Local.sSql,True)
+		
+		F.Intrinsic.Control.If(V.DataTable.Order.RowCount--,=,-1)
+			F.Data.DataTable.AddRow("Order","Serial",V.Local.sSerial)
+		F.Intrinsic.Control.EndIf
+		
+		V.Local.sSerial.Set(V.DataTable.Wire(V.DataTable.Wire.RowCount--).Field_1!FieldValTrim)
+		V.Local.sCustomer.Set(V.DataTable.Wire(V.DataTable.Wire.RowCount--).Field_3!FieldValTrim)
+		V.Local.sCustomer.Set(V.Local.sCustomer.UCase)
+		
+		V.Local.sTemp.Set(V.DataTable.Wire(V.DataTable.Wire.RowCount--).Field_13!FieldValTrim)
+		F.Intrinsic.Control.If(V.Local.sTemp.UCase,=,"ON")
+			V.Local.bClean.Set(True)
+		F.Intrinsic.Control.EndIf
+		
+		V.Local.sTemp.Set(V.DataTable.Wire(V.DataTable.Wire.RowCount--).Field_14!FieldValTrim)
+		F.Intrinsic.Control.If(V.Local.sTemp.UCase,=,"ON")
+			V.Local.bEject.Set(True)
+		F.Intrinsic.Control.EndIf
+		
+		V.Local.sTemp.Set(V.DataTable.Wire(V.DataTable.Wire.RowCount--).Field_15!FieldValTrim)
+		F.Intrinsic.Control.If(V.Local.sTemp.UCase,=,"ON")
+			V.Local.bWorking.Set(True)
+		F.Intrinsic.Control.EndIf
+		
+		F.Intrinsic.String.Build("{0} {1} {2} {3}",V.DataTable.Wire(V.DataTable.Wire.RowCount--).Field_9!FieldValTrim,V.DataTable.Wire(V.DataTable.Wire.RowCount--).Field_10!FieldValTrim,V.DataTable.Wire(V.DataTable.Wire.RowCount--).Field_11!FieldValTrim,V.DataTable.Wire(V.DataTable.Wire.RowCount--).Field_12!FieldValTrim,V.Local.sNote)
+		
+		F.Intrinsic.Control.If(V.Local.sCustomer.Trim,<>,"")
+			F.Intrinsic.String.Build("Select Top 1 Customer, Name_Customer From V_Customer_Master Where ucase(Name_Customer) like '{0}%'",V.Local.sCustomer.PSQLFriendly,v.Local.sSql)
+			F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSql,V.Local.sRet)
+		F.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.If(V.Local.sRet.Trim,<>,"")
+			F.Intrinsic.String.Split(V.Local.sRet,"*!*",V.Local.sCustomer)
+		F.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.If(V.Local.sCustomer.Trim,=,"")
+			F.Intrinsic.String.Build("select a.Customer, b.Name_Customer from V_JOB_HEADER a Left Join V_Customer_Master b on a.Customer = b.Customer Where Job = '{0}' and Suffix = '{1}'",V.Local.sJob,V.Local.sSuffix,V.Local.sSql)
+			F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSql,V.Local.sRet)
+			F.Intrinsic.Control.If(V.Local.sRet.Trim,<>,"")
+				F.Intrinsic.String.Split(V.Local.sRet,"*!*",V.Local.sCustomer)
+			F.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.EndIf
+		V.Local.sCustomer.RedimPreserve(0,1)
+		F.Intrinsic.String.Build("Select Rec_ID, Model, Serial_No, Res_Pressure, Tank_Level, Lubricant_Usage, Job, Suffix, Customer, Name_Customer, Tech, Serv_Date, Serv_By, Location, Building, Equip_Cond, Maint_Type, Clean, Eject_Tubes, System_Working, Notes From GCG_6579_Inspection Where Serv_Date = '{0}' and ucase(Serial_No) = '{1}'",V.Ambient.Date.PervasiveDate,V.Local.sSerial.UCase,V.Local.sSql)
+		F.Data.DataTable.CreateFromSQL("Insp","con",V.Local.sSql,True)
+		F.Intrinsic.Control.If(V.DataTable.Insp.RowCount--,<>,-1)
+			F.Data.DataTable.SetValue("Insp",-1,"Job",V.Local.sJob,"Suffix",V.Local.sSuffix,"Customer",V.Local.sCustomer(0).Trim,"Name_Customer",V.Local.sCustomer(1).Trim,"Serv_Date",V.Ambient.Date,"Serv_By",V.Local.sUser.Trim,"Serial_No",V.Local.sSerial.Trim,"Model",V.DataTable.Order(V.DataTable.Order.RowCount--).Model!FieldValTrim,"Location",V.DataTable.Order(V.DataTable.Order.RowCount--).Address_4_Ship!FieldValTrim,"Building",V.DataTable.Order(V.DataTable.Order.RowCount--).Building!FieldValTrim,"Equip_Cond",V.DataTable.Wire(V.DataTable.Wire.RowCount--).Field_7!FieldValTrim,"Notes",V.Local.sNote,"Clean",V.Local.bClean,"Eject_Tubes",V.Local.bEject,"System_Working",V.Local.bWorking,"Maint_Type",V.DataTable.Order(V.DataTable.Order.RowCount--).Maint_Type!FieldValTrim,"Tech",V.Local.sTech,"Res_Pressure",V.DataTable.Wire(V.DataTable.Wire.RowCount--).Field_4!FieldValTrim,"Tank_Level",V.DataTable.Wire(V.DataTable.Wire.RowCount--).Field_5!FieldValTrim,"Lubricant_Usage",V.DataTable.Wire(V.DataTable.Wire.RowCount--).Field_6!FieldValTrim)
+		F.Intrinsic.Control.Else
+			F.Data.DataTable.AddRow("Insp","Job",V.Local.sJob,"Suffix",V.Local.sSuffix,"Customer",V.Local.sCustomer(0).Trim,"Name_Customer",V.Local.sCustomer(1).Trim,"Serv_Date",V.Ambient.Date,"Serv_By",V.Local.sUser.Trim,"Serial_No",V.Local.sSerial.Trim,"Model",V.DataTable.Order(V.DataTable.Order.RowCount--).Model!FieldValTrim,"Location",V.DataTable.Order(V.DataTable.Order.RowCount--).Address_4_Ship!FieldValTrim,"Building",V.DataTable.Order(V.DataTable.Order.RowCount--).Building!FieldValTrim,"Equip_Cond",V.DataTable.Wire(V.DataTable.Wire.RowCount--).Field_7!FieldValTrim,"Notes",V.Local.sNote,"Clean",V.Local.bClean,"Eject_Tubes",V.Local.bEject,"System_Working",V.Local.bWorking,"Maint_Type",V.DataTable.Order(V.DataTable.Order.RowCount--).Maint_Type!FieldValTrim,"Tech",V.Local.sTech,"Res_Pressure",V.DataTable.Wire(V.DataTable.Wire.RowCount--).Field_4!FieldValTrim,"Tank_Level",V.DataTable.Wire(V.DataTable.Wire.RowCount--).Field_5!FieldValTrim,"Lubricant_Usage",V.DataTable.Wire(V.DataTable.Wire.RowCount--).Field_6!FieldValTrim)
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.String.Build("Select Top 1 N1, C1, T1, D1, N2, C2, T2, D2, NC, CC, TC, N3, C3, T3, D3, N4, C4, T4, D4, Chain, Comm_Addr From GCG_6579_Inspection Where Serv_Date <= '{0}' and ucase(Serial_No) = '{1}' Order by Serv_Date Desc",V.Ambient.Date.PervasiveDate,V.Local.sSerial.UCase,V.Local.sSql)
+	F.Data.DataTable.CreateFromSQL("Insp2","con",V.Local.sSql,True)
+
+	F.Intrinsic.Control.If(V.DataTable.Insp.RowCount--,<>,-1)
+		F.Data.DataTable.SaveToDB("Insp","con","GCG_6579_Inspection","Serial_No*!*Rec_Id",3)
+	F.Intrinsic.Control.EndIf
+
+	F.Intrinsic.Control.If(V.DataTable.Insp2.RowCount--,<>,-1)
+		'1=N1 2=C1 3=T1 4=D1 5=N2 6=C2 7=T2 8=D2 9=NC 10=CC 11=TC 12=N3 13=C3 14=T3 15=D3 16=N4 17=C4 18=T4 19=D4 20=Chain 21=Comm_Addr
+		V.Local.sTemp.Set("1=2=3=4=5=6=7=8=9=10=11=12=13=14=15=16=17=18=19=20=21")
+		V.Local.sTemp2.Set("N1=C1=T1=D1=N2=C2=T2=D2=NC=CC=TC=N3=C3=T3=D3=N4=C4=T4=D4=Chain=Comm_Addr")
+		F.Intrinsic.String.Split(V.Local.sTemp,"=",V.Local.sTemp)
+		F.Intrinsic.String.Split(V.Local.sTemp2,"=",V.Local.sTemp2)
+		F.Intrinsic.Control.For(V.Local.i,0,V.Local.sTemp.UBound,1)
+			F.Intrinsic.String.Build("OrderNo = {0}",V.Local.sTemp(V.Local.i).Long,V.Local.sFilter)
+			F.Data.DataView.Create("Custom","Temp",22,V.Local.sFilter,"")
+			F.Intrinsic.Control.If(V.DataView.Custom!Temp.RowCount--,<>,-1)
+				F.Data.DataView.SetValue("Custom","Temp",-1,"DefaultText",V.DataTable.Insp2(V.DataTable.Insp2.RowCount--).[V.Local.sTemp2(V.Local.i)]!FieldValTrim)
+			F.Intrinsic.Control.EndIf
+			F.Data.DataView.Close("Custom","Temp")
+		F.Intrinsic.Control.Next(V.Local.i)
+	F.Intrinsic.Control.EndIf
+	
+	F.Data.DataTable.Close("Insp")
+	
+	F.Intrinsic.String.Build("Delete From GCG_6579_Custom_Lbls Where User_ID = '{0}' and TXID = {1}",V.Local.sUser,V.Local.iTXID,V.Local.sSql)
+	F.ODBC.Connection!ConC.Execute(V.Local.sSql)
+	F.Data.DataTable.SaveToDB("Custom","conC","GCG_6579_CUSTOM_LBLS","LID*!*USER_ID*!*TXID*!*ORDERNO",256,"LID@!@LID*!*USER_ID@!@USER_ID*!*TXID@!@TXID*!*ORDERNO@!@ORDERNO*!*LABEL@!@LABEL*!*CONTROLTYPE@!@CONTROLTYPE*!*FIELDLENGTH@!@FIELDLENGTH*!*DEFAULTTEXT@!@DEFAULTTEXT")
+	F.ODBC.Connection!ConC.Close
+	F.ODBC.Connection!Con.Close
+	
+	F.Global.Mobile.setcustomresult(v.Caller.CompanyCode,v.Global.sTransID,v.Local.sLinkpath)
+
+	F.Intrinsic.Control.CallSub(Exit)	
+
+F.Intrinsic.Control.Else
+	F.Intrinsic.Control.CallSub(Exit)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.ExitSub
+
+
+F.Intrinsic.Control.Label("Main_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	F.Intrinsic.String.Build("Project: GCG_6579_New_Inspection.g2u {0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}",V.Ambient.NewLine,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.CallSub(Exit)
+Function.Intrinsic.Control.EndIf
+Program.Sub.Main.End
+
+Program.Sub.Exit.Start
+F.Intrinsic.Control.SetErrorHandler("Exit_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String,"")
+
+F.Intrinsic.Control.End
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("Exit_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	F.Intrinsic.Control.End
+Function.Intrinsic.Control.EndIf
+Program.Sub.Exit.End
